@@ -1,10 +1,10 @@
 services:
-  tweeter-clon-db:
+  merchandising-db:
     image: mysql:8.0
-    container_name: tweeter-clon-db
+    container_name: merchandising-db
     environment:
       MYSQL_ROOT_PASSWORD: admin
-      MYSQL_DATABASE: tweeter_clon
+      MYSQL_DATABASE: merchandising
       MYSQL_USER: admin
       MYSQL_PASSWORD: admin
     ports:
@@ -20,4 +20,4 @@ services:
     ports:
       - '8081:8080'
     depends_on:
-      - tweeter-clon-db
+      - merchandising-db

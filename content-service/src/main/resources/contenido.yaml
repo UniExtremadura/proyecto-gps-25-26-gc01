@@ -1,0 +1,1095 @@
+openapi: 3.0.3
+info:
+  title: Contenido API
+  description: API para gestionar álbumes, canciones, géneros y comentarios en UnderSounds
+  version: 1.0.0
+  contact:
+    name: Soporte Técnico
+    email: soporte@undersounds.com
+    url: https://www.undersounds.com
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8081/api
+    description: Servidor de desarrollo
+
+paths:
+  # Endpoints de Álbumes
+  /album:
+    post:
+      summary: Subir un nuevo álbum
+      operationId: uploadAlbum
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                album:
+                  $ref: "#/components/schemas/ReceivedAlbumDTO"
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Álbum subido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No autorizado
+        '500':
+          description: Error interno del servidor
+
+    patch:
+      summary: Actualizar un álbum existente
+      operationId: updateAlbum
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                album:
+                  $ref: "#/components/schemas/ReceivedAlbumDTO"
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Álbum actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+
+  /album/public/{publicId}:
+    get:
+      summary: Obtener un álbum por su ID público
+      operationId: getAlbumByPublicId
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Álbum encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentAlbumDTO"
+        '404':
+          description: Álbum no encontrado
+
+  /album/public:
+    get:
+      summary: Obtener álbumes filtrados
+      operationId: getAlbumsFiltered
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: artistUserName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Lista de álbumes filtrados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SentAlbumDTO"
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer
+
+  /album/purchased:
+    get:
+      summary: Obtener álbumes comprados por el usuario
+      operationId: getUserPurchasedAlbums
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de álbumes comprados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SentAlbumDTO"
+
+  /album/restore/{publicId}:
+    patch:
+      summary: Restaurar un álbum eliminado
+      operationId: restoreAlbum
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Álbum restaurado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+
+  /album/{publicId}/price:
+    patch:
+      summary: Actualizar precio de un álbum
+      operationId: updateAlbumPrice
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: newPrice
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+      responses:
+        '200':
+          description: Precio actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+
+  /album/{publicId}:
+    delete:
+      summary: Eliminar un álbum (borrado lógico)
+      operationId: deleteAlbum
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Álbum eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+
+  # Endpoints de Canciones
+  /song:
+    post:
+      summary: Subir una nueva canción
+      operationId: uploadSong
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                song:
+                  $ref: "#/components/schemas/ReceivedSongDTO"
+                audio:
+                  type: string
+                  format: binary
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Canción subida exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+
+    patch:
+      summary: Actualizar una canción existente
+      operationId: updateSong
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                song:
+                  $ref: "#/components/schemas/UpdateSongDTO"
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Canción actualizada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+
+  /song/version:
+    post:
+      summary: Crear una nueva versión de una canción
+      operationId: createSongVersion
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                song:
+                  $ref: "#/components/schemas/ReceivedSongDTO"
+                audioFile:
+                  type: string
+                  format: binary
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Nueva versión creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+
+  /song/public/{publicId}:
+    get:
+      summary: Obtener una canción por su ID público
+      operationId: getSongByPublicId
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Canción encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentSongDTO"
+
+  /song/public:
+    get:
+      summary: Obtener canciones filtradas
+      operationId: getSongsFiltered
+      parameters:
+        - name: genres
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: albumId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: artistUserName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Lista de canciones filtradas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SentSongDTO"
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer
+
+  /song/public/versions/{publicId}:
+    get:
+      summary: Obtener versiones de una canción
+      operationId: getSongVersions
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de versiones de la canción
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SentSongDTO"
+
+  /song/purchased:
+    get:
+      summary: Obtener canciones compradas por el usuario
+      operationId: getUserPurchasedSongs
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de canciones compradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SentSongDTO"
+
+  /song/deleted:
+    get:
+      summary: Obtener canciones eliminadas del artista
+      operationId: getDeletedSongs
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de canciones eliminadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SentSongDTO"
+
+  /song/{publicId}/audio:
+    get:
+      summary: Obtener audio completo de una canción
+      operationId: getAudio
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Audio de la canción
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /song/public/{publicId}/preview:
+    get:
+      summary: Obtener vista previa del audio de una canción
+      operationId: getPreview
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Vista previa del audio
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /song/restore/{publicId}:
+    patch:
+      summary: Restaurar una canción eliminada
+      operationId: restoreSong
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Canción restaurada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+
+  /song/{publicId}:
+    delete:
+      summary: Eliminar una canción (borrado lógico)
+      operationId: deleteSong
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Canción eliminada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+
+  # Endpoints de Comentarios de Álbumes
+  /comment/album:
+    post:
+      summary: Crear un comentario en un álbum
+      operationId: createAlbumComment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAlbumCommentDTO"
+      responses:
+        '201':
+          description: Comentario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlbumCommentDTO"
+
+    get:
+      summary: Obtener comentario del usuario en un álbum
+      operationId: getUserCommentInAlbum
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: albumPublicId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Comentario del usuario
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlbumCommentDTO"
+
+    put:
+      summary: Actualizar un comentario de álbum
+      operationId: updateAlbumComment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAlbumCommentDTO"
+      responses:
+        '200':
+          description: Comentario actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlbumCommentDTO"
+
+  /comment/album/public:
+    get:
+      summary: Obtener comentarios de un álbum filtrados
+      operationId: getByAlbumPublicIdFiltered
+      parameters:
+        - name: albumPublicId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Lista de comentarios del álbum
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AlbumCommentDTO"
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer
+
+  /comment/album/{albumPublicId}:
+    delete:
+      summary: Eliminar un comentario de álbum
+      operationId: deleteAlbumComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: albumPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Comentario eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+
+  # Endpoints de Comentarios de Canciones
+  /comment/song:
+    post:
+      summary: Crear un comentario en una canción
+      operationId: createSongComment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSongCommentDTO"
+      responses:
+        '201':
+          description: Comentario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongCommentDTO"
+
+    get:
+      summary: Obtener comentario del usuario en una canción
+      operationId: getUserCommentInSong
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: songPublicId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Comentario del usuario
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongCommentDTO"
+
+    put:
+      summary: Actualizar un comentario de canción
+      operationId: updateSongComment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSongCommentDTO"
+      responses:
+        '200':
+          description: Comentario actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SongCommentDTO"
+
+  /comment/song/public:
+    get:
+      summary: Obtener comentarios de una canción filtrados
+      operationId: getBySongPublicIdFiltered
+      parameters:
+        - name: songPublicId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Lista de comentarios de la canción
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SongCommentDTO"
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer
+
+  /comment/song/{songPublicId}:
+    delete:
+      summary: Eliminar un comentario de canción
+      operationId: deleteSongComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: songPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Comentario eliminado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessfulResponseDTO"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    SuccessfulResponseDTO:
+      type: object
+      properties:
+        successful:
+          type: string
+        message:
+          type: string
+        statusCode:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+    ReceivedAlbumDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        publishDate:
+          type: string
+          format: date-time
+
+    SentAlbumDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        coverName:
+          type: string
+        publishDate:
+          type: string
+          format: date-time
+        deleted:
+          type: boolean
+        deletedAt:
+          type: string
+          format: date-time
+        artist:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            username:
+              type: string
+
+    ReceivedSongDTO:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        previewStart:
+          type: integer
+        previewFinish:
+          type: integer
+        duration:
+          type: integer
+        genres:
+          type: array
+          items:
+            type: string
+        albumId:
+          type: string
+          format: uuid
+
+    UpdateSongDTO:
+      type: object
+      properties:
+        publicId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        previewStart:
+          type: integer
+        previewFinish:
+          type: integer
+        duration:
+          type: integer
+        genres:
+          type: array
+          items:
+            type: string
+
+    SentSongDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        duration:
+          type: integer
+        audioName:
+          type: string
+        previewStart:
+          type: integer
+        previewDuration:
+          type: integer
+        previewName:
+          type: string
+        coverName:
+          type: string
+        deleted:
+          type: boolean
+        deletedAt:
+          type: string
+          format: date-time
+        genres:
+          type: array
+          items:
+            $ref: "#/components/schemas/GenreDTO"
+        album:
+          $ref: "#/components/schemas/SentAlbumDTO"
+
+    GenreDTO:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [ROCK, POP, JAZZ, CLASSICAL, HIP_HOP, ELECTRONIC, COUNTRY, REGGAE, BLUES, METAL, FOLK, RNB, LATIN, OTHER]
+
+    CreateAlbumCommentDTO:
+      type: object
+      required:
+        - albumPublicId
+        - description
+        - rating
+      properties:
+        albumPublicId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+
+    UpdateAlbumCommentDTO:
+      type: object
+      required:
+        - albumPublicId
+        - description
+        - rating
+      properties:
+        albumPublicId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+
+    AlbumCommentDTO:
+      type: object
+      properties:
+        albumPublicId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        likes:
+          type: integer
+        dislikes:
+          type: integer
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            username:
+              type: string
+
+    CreateSongCommentDTO:
+      type: object
+      required:
+        - songPublicId
+        - description
+        - rating
+      properties:
+        songPublicId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+
+    UpdateSongCommentDTO:
+      type: object
+      required:
+        - songPublicId
+        - description
+        - rating
+      properties:
+        songPublicId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+
+    SongCommentDTO:
+      type: object
+      properties:
+        songPublicId:
+          type: string
+          format: uuid
+        description:
+          type: string
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        likes:
+          type: integer
+        dislikes:
+          type: integer
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            username:
+              type: string

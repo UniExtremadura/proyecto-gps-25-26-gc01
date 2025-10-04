@@ -34,6 +34,7 @@ components:
         - price
         - stock
         - type
+        - coverSrc
       properties:
         id:
           type: integer
@@ -62,6 +63,15 @@ components:
           type: string
           description: Tipo de producto (camiseta, taza, vinilo, cd, poster)
           example: "camiseta"
+        coverSrc:
+          type: string
+          format: uri
+          description: URL de la portada o imagen principal del producto
+          example: "https://cdn.shopify.com/s/files/1/0000/1111/products/camiseta.png"
+        artist:
+          type: string
+          description: Nombre del artista asociado al producto
+          example: "The Undersounds"
 
     ProductCreateRequest:
       type: object
@@ -70,6 +80,7 @@ components:
         - price
         - stock
         - type
+        - coverSrc
       properties:
         name:
           type: string
@@ -85,10 +96,37 @@ components:
           type: string
           enum: [camiseta, taza, vinilo, cd, poster]
           example: "vinilo"
+        coverSrc:
+          type: string
+          format: uri
+          example: "https://cdn.shopify.com/s/files/1/0000/1111/products/vinilo.png"
+        artist:
+          type: string
+          example: "The Undersounds"
 
     ProductResponse:
       allOf:
         - $ref: "#/components/schemas/Product"
+
+    ProductPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductResponse"
+        page:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+        totalElements:
+          type: integer
+          example: 125
+        totalPages:
+          type: integer
+          example: 7
 
 security:
   - bearerAuth: []
@@ -98,19 +136,58 @@ paths:
     get:
       tags:
         - product
-      summary: Listar todos los productos
-      description: Devuelve todos los productos de merchandising disponibles en la tienda.
+      summary: Listar productos con paginación y filtros
+      description: Devuelve una página de productos con soporte de filtros por nombre, artista y rango de precios.
       security:
         - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+          description: Número de página (empezando en 0)
+          example: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+          description: Número de elementos por página
+          example: 20
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Filtro por nombre de producto (búsqueda parcial)
+          example: "camiseta"
+        - in: query
+          name: artist
+          schema:
+            type: string
+          description: Filtro por artista
+          example: "The Undersounds"
+        - in: query
+          name: minPrice
+          schema:
+            type: number
+            format: float
+          description: Precio mínimo
+          example: 10.0
+        - in: query
+          name: maxPrice
+          schema:
+            type: number
+            format: float
+          description: Precio máximo
+          example: 50.0
       responses:
         "200":
-          description: Lista de productos
+          description: Página de productos filtrada
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/ProductResponse"
+                $ref: "#/components/schemas/ProductPage"
 
     post:
       tags:

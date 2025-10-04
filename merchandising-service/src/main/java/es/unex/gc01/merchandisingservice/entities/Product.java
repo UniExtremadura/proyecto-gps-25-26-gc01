@@ -30,6 +30,9 @@ public abstract class Product {
     @Column(name = "public_id", unique = true, nullable = false, updatable = false)
     private UUID publicId = UUID.randomUUID();
 
+    @Column(updatable = false, nullable = false)
+    private Long owner;
+
     /**
      * Nombre del producto.
      */

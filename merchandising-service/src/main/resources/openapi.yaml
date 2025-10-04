@@ -1,0 +1,209 @@
+openapi: "3.1.0"
+
+info:
+  title: Servicio de Merchandising
+  description: |-
+    Servicio de Undersounds dedicado a la gestión de merchandising de los artistas.
+    Este servicio actúa como cliente de Shopify, exponiendo una API REST simplificada.
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+
+servers:
+  - url: https://undersounds.com/api/v1/merch
+
+tags:
+  - name: product
+    description: Productos físicos en venta.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Product:
+      type: object
+      required:
+        - id
+        - publicId
+        - name
+        - price
+        - stock
+        - type
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Identificador interno del producto
+          example: 123
+        publicId:
+          type: string
+          format: uuid
+          description: Identificador público único del producto
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          description: Nombre del producto
+          example: "Camiseta edición limitada"
+        price:
+          type: number
+          format: float
+          description: Precio en euros
+          example: 19.99
+        stock:
+          type: integer
+          description: Cantidad disponible
+          example: 50
+        type:
+          type: string
+          description: Tipo de producto (camiseta, taza, vinilo, cd, poster)
+          example: "camiseta"
+
+    ProductCreateRequest:
+      type: object
+      required:
+        - name
+        - price
+        - stock
+        - type
+      properties:
+        name:
+          type: string
+          example: "Vinilo edición especial"
+        price:
+          type: number
+          format: float
+          example: 24.99
+        stock:
+          type: integer
+          example: 10
+        type:
+          type: string
+          enum: [camiseta, taza, vinilo, cd, poster]
+          example: "vinilo"
+
+    ProductResponse:
+      allOf:
+        - $ref: "#/components/schemas/Product"
+
+security:
+  - bearerAuth: []
+
+paths:
+  /products:
+    get:
+      tags:
+        - product
+      summary: Listar todos los productos
+      description: Devuelve todos los productos de merchandising disponibles en la tienda.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de productos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProductResponse"
+
+    post:
+      tags:
+        - product
+      summary: Crear un nuevo producto
+      description: Crea un nuevo producto en la tienda y lo sincroniza con Shopify.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCreateRequest"
+      responses:
+        "201":
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+
+  /products/{id}:
+    get:
+      tags:
+        - product
+      summary: Obtener un producto por ID
+      description: Devuelve la información de un producto específico.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        "404":
+          description: Producto no encontrado
+
+    put:
+      tags:
+        - product
+      summary: Actualizar un producto
+      description: Actualiza un producto existente en la tienda y en Shopify.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCreateRequest"
+      responses:
+        "200":
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        "404":
+          description: Producto no encontrado
+
+    delete:
+      tags:
+        - product
+      summary: Eliminar un producto
+      description: Elimina un producto de la tienda y de Shopify.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Producto eliminado correctamente
+        "404":
+          description: Producto no encontrado

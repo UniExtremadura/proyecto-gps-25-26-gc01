@@ -50,6 +50,10 @@ components:
           type: string
           description: Nombre del producto
           example: "Camiseta edición limitada"
+        description:
+          type: string
+          description: Descripción del producto
+          example: "Una camiseta diseñada para los amantes del Rock"
         price:
           type: number
           format: float
@@ -68,10 +72,11 @@ components:
           format: uri
           description: URL de la portada o imagen principal del producto
           example: "https://cdn.shopify.com/s/files/1/0000/1111/products/camiseta.png"
-        artist:
-          type: string
-          description: Nombre del artista asociado al producto
-          example: "The Undersounds"
+        artistPublicId:
+          type: integer
+          format: int64
+          description: Identificador público del artista propietario del producto
+          example: 123
 
     ProductCreateRequest:
       type: object
@@ -85,6 +90,9 @@ components:
         name:
           type: string
           example: "Vinilo edición especial"
+        description:
+          type: string
+          example: "Un vinilo creado para los amantes del Pop"
         price:
           type: number
           format: float
@@ -101,12 +109,25 @@ components:
           format: uri
           example: "https://cdn.shopify.com/s/files/1/0000/1111/products/vinilo.png"
         artist:
-          type: string
-          example: "The Undersounds"
+          type: integer
+          format: int64
+          description: Identificador del artista propietario del producto
+          example: 123
 
     ProductResponse:
       allOf:
         - $ref: "#/components/schemas/Product"
+      properties:
+        artistName:
+          type: string
+          description: Nombre del artista
+          example: "The Undersounds"
+        artistPFP:
+          type: string
+          format: uri
+          description: Foto de perfil del artista
+          example: "https://cdn.undersounds.com/api/v1/images/artist/123.png"
+
 
     ProductPage:
       type: object

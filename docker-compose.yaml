@@ -1,0 +1,23 @@
+services:
+  payments-db:
+    image: mysql:8.0
+    container_name: payments-db
+    environment:
+      MYSQL_ROOT_PASSWORD: admin
+      MYSQL_DATABASE: payments
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin
+    ports:
+      - "3306:3306"
+
+
+  keycloak:
+    image: 'quay.io/keycloak/keycloak:latest'
+    command: start-dev
+    environment:
+      - 'KEYCLOAK_ADMIN=admin'
+      - 'KEYCLOAK_ADMIN_PASSWORD=admin'
+    ports:
+      - '8081:8080'
+    depends_on:
+      - payments-db

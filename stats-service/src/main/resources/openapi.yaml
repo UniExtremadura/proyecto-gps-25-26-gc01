@@ -1,0 +1,343 @@
+openapi: 3.0.4
+info:
+  title: Stats-service API
+  version: 1.0.0
+  description: API para gestionar las estadísticas del sistema
+servers:
+  - url: http://localhost:8080/api
+
+paths:
+  /stats/public/summary:
+    get:
+      tags:
+        - Estadísticas
+      summary: Obtiene el resumen general de las estadísticas de la plataforma
+      description: Devuelve un resumen con el número total de usuarios, canciones y reproducciones mensuales en la plataforma.
+      responses:
+        '200':
+          description: Resumen de estadísticas generales recuperado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsSummaryDTO'
+              example:
+                totalUsers: 15400
+                totalSongs: 32450
+                totalMonthlyStreams: 982340
+        '500':
+          description: Error interno al recuperar las estadísticas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "InternalServerError"
+                message: "No se pudieron recuperar las estadísticas generales"
+                statusCode: 500
+                timestamp: "2025-10-05T14:00:00Z"
+
+  /stats/public/top-artists:
+    get:
+      tags:
+        - Estadísticas
+      summary: Obtiene los 50 artistas más populares de un mes y año específicos
+      description: Devuelve una lista de hasta 50 artistas más populares según sus reproducciones en el mes y año indicados.
+      parameters:
+        - in: query
+          name: month
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+          required: true
+          description: Mes (1-12) para el cual se desea obtener el top de artistas.
+          example: 9
+        - in: query
+          name: year
+          schema:
+            type: integer
+            minimum: 2000
+          required: true
+          description: Año para el cual se desea obtener el top de artistas.
+          example: 2025
+      responses:
+        '200':
+          description: Lista de los 50 artistas más populares recuperada con éxito
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArtistStatsDTO'
+              example:
+                - artistId: 1
+                  artisticName: "WILYWNKA"
+                  totalStreams: 123456
+                  monthlyStreams: 43210
+                - artistId: 2
+                  artisticName: "DJ Leo"
+                  totalStreams: 115000
+                  monthlyStreams: 40500
+        '400':
+          description: Parámetros de mes o año inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "El mes debe estar entre 1 y 12, y el año debe ser válido"
+                statusCode: 400
+                timestamp: "2025-10-05T14:05:00Z"
+        '500':
+          description: Error interno al recuperar las estadísticas de los artistas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "InternalServerError"
+                message: "No se pudo recuperar el top de artistas"
+                statusCode: 500
+                timestamp: "2025-10-05T14:07:00Z"
+
+  /stats/public/custom-report:
+    post:
+      tags:
+        - Estadísticas
+      summary: Genera un informe estadístico personalizado
+      description: Permite crear un informe estadístico filtrado por fechas, artistas o géneros.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomReportDTO'
+            example:
+              name: "Informe Septiembre 2025"
+              month: 9
+              year: 2025
+              topArtists: true
+              genres: [ROCK, JAZZ]
+      responses:
+        '201':
+          description: Informe creado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponseDTO'
+              example:
+                reportId: 101
+                name: "Informe Septiembre 2025"
+                status: "CREATED"
+        '400':
+          description: Datos inválidos para generar el informe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad Request"
+                message: "Mes y año son obligatorios"
+                statusCode: 400
+                timestamp: "2025-10-05T15:00:00Z"
+
+  /stats/public/custom-report/{reportId}:
+    put:
+      tags:
+        - Estadísticas
+      summary: Reemplaza un informe estadístico existente
+      description: Reemplaza completamente un informe previamente creado por uno nuevo.
+      parameters:
+        - in: path
+          name: reportId
+          schema:
+            type: integer
+          required: true
+          description: ID del informe a reemplazar
+          example: 101
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomReportDTO'
+            example:
+              name: "Informe Septiembre 2025 - Actualizado"
+              month: 9
+              year: 2025
+              topArtists: false
+              genres: [POP]
+      responses:
+        '200':
+          description: Informe reemplazado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponseDTO'
+              example:
+                reportId: 101
+                name: "Informe Septiembre 2025 - Actualizado"
+                status: "UPDATED"
+        '404':
+          description: Informe no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "Informe no encontrado"
+                statusCode: 404
+                timestamp: "2025-10-05T15:10:00Z"
+
+    patch:
+      tags:
+        - Estadísticas
+      summary: Actualiza parcialmente un informe estadístico
+      description: Permite actualizar solo algunos campos del informe, como el nombre o filtros.
+      parameters:
+        - in: path
+          name: reportId
+          schema:
+            type: integer
+          required: true
+          description: ID del informe a actualizar
+          example: 101
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                topArtists:
+                  type: boolean
+              example:
+                name: "Informe Septiembre 2025 - Parcial"
+                topArtists: true
+      responses:
+        '200':
+          description: Informe actualizado parcialmente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponseDTO'
+              example:
+                reportId: 101
+                name: "Informe Septiembre 2025 - Parcial"
+                status: "PARTIALLY_UPDATED"
+        '404':
+          description: Informe no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Not Found"
+                message: "Informe no encontrado"
+                statusCode: 404
+                timestamp: "2025-10-05T15:12:00Z"
+
+components:
+  schemas:
+    StatsSummaryDTO:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+          example: 15400
+          description: Número total de usuarios registrados en la plataforma
+        totalSongs:
+          type: integer
+          example: 32450
+          description: Número total de canciones subidas al sistema
+        totalMonthlyStreams:
+          type: integer
+          example: 982340
+          description: Número total de reproducciones acumuladas en el mes actual
+
+    ArtistStatsDTO:
+      type: object
+      properties:
+        artistId:
+          type: integer
+          example: 101
+          description: Identificador único del artista
+        artisticName:
+          type: string
+          example: "TORAUMA"
+          description: Nombre artístico del artista
+        totalStreams:
+          type: integer
+          example: 120000
+          description: Número total de reproducciones históricas del artista
+        monthlyStreams:
+          type: integer
+          example: 45000
+          description: Número total de reproducciones obtenidas en el mes y año especificados
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "InternalServerError"
+        message:
+          type: string
+          example: "No se pudieron recuperar las estadísticas generales"
+        statusCode:
+          type: integer
+          example: 500
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-10-05T14:00:00Z"
+
+    CustomReportDTO:
+      type: object
+      required:
+        - name
+        - month
+        - year
+      properties:
+        name:
+          type: string
+          description: Nombre del informe
+          example: "Informe Septiembre 2025"
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: Mes del informe
+          example: 9
+        year:
+          type: integer
+          minimum: 2000
+          description: Año del informe
+          example: 2025
+        topArtists:
+          type: boolean
+          description: Indica si se incluyen los 50 artistas más populares
+          example: true
+        genres:
+          type: array
+          items:
+            type: string
+          description: Filtros por géneros musicales
+          example: [ROCK, JAZZ]
+
+    ReportResponseDTO:
+      type: object
+      properties:
+        reportId:
+          type: integer
+          example: 101
+        name:
+          type: string
+          example: "Informe Septiembre 2025"
+        status:
+          type: string
+          example: "CREATED"

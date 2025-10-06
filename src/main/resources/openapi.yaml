@@ -1,0 +1,287 @@
+openapi: 3.0.3
+info:
+  title: Payments & Purchases API
+  version: 1.1.0
+  description: |
+    API para la gestión de pagos y compras del sistema UnderSounds.
+    Permite crear, filtrar, actualizar y generar comprobantes de pagos a artistas,
+    así como realizar compras de canciones y álbumes por parte de usuarios autenticados.
+
+servers:
+  - url: http://localhost:8080/api
+    description: Servidor local de desarrollo
+
+tags:
+  - name: Payments
+    description: Operaciones relacionadas con pagos.
+  - name: Purchases
+    description: Operaciones relacionadas con compras de canciones y álbumes.
+
+paths:
+  /payments:
+    post:
+      tags: [Payments]
+      summary: Crear un nuevo pago
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentDTO'
+      responses:
+        '200':
+          description: Pago creado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDTO'
+
+    get:
+      tags: [Payments]
+      summary: Filtrar pagos
+      parameters:
+        - name: artistId
+          in: query
+          schema:
+            type: integer
+          description: ID del artista
+        - name: month
+          in: query
+          schema:
+            type: integer
+          description: Mes del pago
+        - name: year
+          in: query
+          schema:
+            type: integer
+          description: Año del pago
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/PaymentStatus'
+          description: Estado del pago
+        - name: minAmount
+          in: query
+          schema:
+            type: number
+            format: decimal
+          description: Monto mínimo
+        - name: maxAmount
+          in: query
+          schema:
+            type: number
+            format: decimal
+          description: Monto máximo
+      responses:
+        '200':
+          description: Lista filtrada de pagos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentDTO'
+
+  /payments/{paymentId}/receipt:
+    get:
+      tags: [Payments]
+      summary: Descargar comprobante PDF de un pago completado
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID del pago
+      responses:
+        '200':
+          description: Comprobante PDF generado correctamente
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: Error en la solicitud (pago no completado o inválido)
+
+  /payments/{paymentId}:
+    patch:
+      tags: [Payments]
+      summary: Actualizar información de un pago
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID del pago
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentDTO'
+      responses:
+        '200':
+          description: Pago actualizado correctamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentDTO'
+        '404':
+          description: Pago no encontrado
+
+  /purchase/album/{albumPublicId}:
+    put:
+      tags: [Purchases]
+      summary: Comprar un álbum
+      description: Permite a un usuario autenticado comprar un álbum mediante su identificador público.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: albumPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identificador público del álbum
+      responses:
+        '200':
+          description: Compra de álbum exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessfulResponseDTO'
+        '401':
+          description: Usuario no autenticado
+        '404':
+          description: Álbum no encontrado
+
+  /purchase/song/{songPublicId}:
+    put:
+      tags: [Purchases]
+      summary: Comprar una canción
+      description: Permite a un usuario autenticado comprar una canción mediante su identificador público.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: songPublicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identificador público de la canción
+      responses:
+        '200':
+          description: Compra de canción exitosa
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessfulResponseDTO'
+        '401':
+          description: Usuario no autenticado
+        '404':
+          description: Canción no encontrada
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    PaymentDTO:
+      type: object
+      description: Representa un pago realizado a un artista.
+      properties:
+        id:
+          type: integer
+          example: 123
+        artistId:
+          type: integer
+          example: 45
+        artistName:
+          type: string
+          example: "The Undersounds"
+        concept:
+          type: string
+          example: "Pago por regalías de septiembre"
+        paymentDate:
+          type: string
+          format: date
+          example: "2025-09-30"
+        amount:
+          type: number
+          format: decimal
+          example: 1500.75
+        paymentMethod:
+          $ref: '#/components/schemas/PaymentMethod'
+        status:
+          $ref: '#/components/schemas/PaymentStatus'
+      required:
+        - artistId
+        - concept
+        - paymentDate
+        - amount
+        - paymentMethod
+        - status
+
+    PaymentStatus:
+      type: string
+      enum: [PENDING, COMPLETED, FAILED]
+      example: COMPLETED
+      description: Estado del pago.
+
+    PaymentMethod:
+      type: string
+      enum: [TRANSFER, PAYPAL, CREDIT_CARD, CASH, OTHER]
+      example: PAYPAL
+      description: Método de pago utilizado.
+
+    Purchase:
+      type: object
+      description: Representa una compra realizada por un usuario.
+      properties:
+        id:
+          type: integer
+          example: 1001
+        purchaseDate:
+          type: string
+          format: date-time
+          example: "2025-10-06T15:30:00Z"
+        userId:
+          type: integer
+          example: 50
+        totalAmount:
+          type: number
+          format: float
+          example: 39.99
+        isConfirmed:
+          type: boolean
+          example: true
+        productIds:
+          type: array
+          items:
+            type: integer
+          example: [12, 34, 56]
+
+    SuccessfulResponseDTO:
+      type: object
+      description: Respuesta estándar para operaciones exitosas.
+      properties:
+        successful:
+          type: string
+          example: successful_album_purchase
+        message:
+          type: string
+          example: The album was purchased successfully
+        statusCode:
+          type: integer
+          example: 200
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-10-06T13:00:00Z"

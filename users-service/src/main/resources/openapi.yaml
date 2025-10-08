@@ -105,7 +105,7 @@ paths:
       description: Devuelve los balances, pagos y otra información financiera del artista autenticado. 
         Requiere autenticación.
       security:
-        - ApiKeyAuth: []
+        - BearerAuth: []
       responses:
         '200':
           description: Información financiera del artista recuperada con éxito
@@ -159,7 +159,7 @@ paths:
       summary: Actualiza los datos de un artista autenticado
       description: Permite que un artista autenticado actualice su información.
       security:
-        - ApiKeyAuth: []
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -190,7 +190,7 @@ paths:
       summary: Realiza un borrado lógico de un artista autenticado
       description: Realiza un borrado lógico de un artista autenticado junto con toda su información.El artista y sus canciones/álbumes aparecen borrados pero no se han eliminado de manera física.
       security:
-        - ApiKeyAuth: []
+        - BearerAuth: []
       responses:
         '200':
           description: Artista borrado de forma existosa
@@ -227,7 +227,7 @@ paths:
       summary: Convierte un usuario en artista
       description: Convierte un usuario autentificado en un artista con datos incluidos. Si el usuario ya está registrado como artista se manejara un error de contenido.
       security:
-        - ApiKeyAuth: []
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -253,14 +253,22 @@ paths:
                 statusCode: 401
                 timestamp: "2025-10-01T14:41:00"
               
-  /artist/restore:
+  /artist/{id}/restauracion:
     patch:  
       tags:
         - Artistas
       summary: Restaura a un artista previamente eliminado de forma lógica
       description: Restaura a un artista previamente eliminado de forma lógica. Requiere que el usuario autenticado sea el dueño de la cuenta de artista.
       security:
-        - ApiKeyAuth: []
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+            example: 4
+          
       responses:
         '200':
           description: Artista restaurado correctamente
@@ -290,7 +298,7 @@ paths:
       description: Recupera la información del usuario actualmente autentificado.
                   Requiere un token válido de verificación.
       security:
-        - ApiKeyAuth: []
+        - BearerAuth: []
       responses:
         '200':
           description: Se ha obtenido correctamente la información de los usuarios autenticados
@@ -307,7 +315,7 @@ paths:
         Permite al usuario autenticado actualizar su información personal.  
         Devuelve un objeto con el resultado de la operación.
       security:
-        - ApiKeyAuth: []
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -338,7 +346,8 @@ paths:
                 statusCode: 500
                 timestamp: "2025-10-01T16:30:00Z"
                 
-  /users/register:
+                
+  /users/registro:
     post:
       tags:
         - Usuarios
@@ -408,7 +417,7 @@ paths:
         Permite a un usuario iniciar sesión con su nombre de usuario y contraseñan.
         Devuelve el perfil del usuario si las credenciales son correctas, o un error 404 si no lo son.
       security:
-        - ApiKeyAuth: []
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -439,6 +448,384 @@ paths:
                   message: "credenciales incorrectas"
                   statusCode: 401
                   timestamp: "2025-10-01T16:00:00Z"
+                  
+  /users/login/acceso:         
+    get:
+      tags:
+        - Usuarios
+      summary: Obtiene los usuarios que coincidan con el correo y contraseña
+      description: |
+        Consulta para el login del usuario, buscando por su email y contraseña.  
+        Se utiliza para verificar si existe un usuario con esos datos para poder iniciar sesión.
+        
+        **Nota**: Este endpoint está diseñado para comunicación entre microservicios y requiere de una API key válida.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: email
+          in: query
+          required: true
+          description: El email del usuario que se quire recuperar
+          schema:
+            type: string
+            example: "jlosada@gmail.com"
+        - name: password
+          in: query
+          required: true
+          description: La contraseña del usuario que se quiere recuperar
+          schema:
+            type: string
+            example: "jyEfkri45"
+            
+      responses:
+        '200':
+          description: Autenticación existosa. Retorna los datos del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileDTO'
+              example:
+                name: "jhon"
+                surname: "brown"
+                username: "jhon1342"
+                email: "jhonbrown@gmail.com"
+                password: "jdk1234*4"
+        '400':
+          description: Parámetros inválidos o faltantes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad request - Parámetros faltantes"
+                message: "Los parámetros 'email, password y API_KEY' son requeridos"
+                status: 400
+                timestamp: "2025-10-06T18:29:00Z"
+        '401':   
+          description: Autenticación fallida - Credenciales inválidas o API key no autorizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                invalidCredentials:
+                  error: "Unauthorized"
+                  message: "Credenciales no válidas"
+                  statusCode: 401
+                  timestamp: "2025-10-06T18:34:00Z"
+                invalidApiKey:
+                  error: "Unauthorized"
+                  message: "API key inválida"
+                  statusCode: 401
+                  timestamp: "2025-10-06T18:36:00Z"
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "Error interno del servidor"
+                statusCode: 500
+                timestamp: "2025-10-06T18:41:00Z"
+  /users/{email}:
+    get:
+      tags:
+        - Usuarios
+      summary: Obtine el usuario que coincide con el email solicitado
+      description: |
+        Consulta para verificar que existe el usuario con el mismo email.
+        Devuelve el usuario registrado en el sistema si existe.
+        
+        **Nota**: Este endpoint está diseñado para comunicación entre microservicios  y requiere de una API key válida 
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: email
+          in: path
+          required: true
+          description: El email del usuario que se quiere recuperar
+          schema:
+            type: string
+            example: "jlosada@gmail.com"
+            
+      responses:
+        '200':
+          description: Autenticación exitosa. Devuelve los datos del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileDTO'
+              example:
+                name: "jhon"
+                surname: "brown"
+                username: "jhon1342"
+                email: "jhonbrown@gmail.com"
+                password: "jdk1234*4" 
+        '400':
+          description: Parámetros inválidos o faltantes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad request - Parámetros faltantes"
+                message: "Los parámetros 'email' son requeridos"
+                status: 400
+                timestamp: "2025-10-06T19:13:00Z" 
+        '401':   
+          description: Autenticación fallida - Email inválido o API key no autorizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                invalidCredentials:
+                  error: "Unauthorized"
+                  message: "Credenciales no válidas"
+                  statusCode: 401
+                  timestamp: "2025-10-06T18:34:00Z"
+                invalidApiKey:
+                  error: "Unauthorized"
+                  message: "API key inválida"
+                  statusCode: 401
+                  timestamp: "2025-10-06T19:14:00Z"    
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "Error interno del servidor"
+                statusCode: 500
+                timestamp: "2025-10-06T18:41:00Z"       
+  /users/{id}:
+    get:
+      tags:
+        - Usuarios
+      summary: Obtiene los datos del usuario con el id solicitado
+      description: |
+        Consulta para verificar si ya existe un usuario con el mismo ID.
+        Se utiliza para verificar la existencia de un usuario cuando se busca por su identificador único.
+        
+        **Nota**: Este endpoint está diseñado para comunicación entre microservicios  y requiere de una API key válida 
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: El id del usuario que se quiere consultar
+          schema:
+            type: number
+            example: 34
+        
+      responses:
+        '200':
+          description: Autenticación exitosa. Devuelve los datos del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileDTO'
+              example:
+                name: "jhon"
+                surname: "brown"
+                username: "jhon1342"
+                email: "jhonbrown@gmail.com"
+                password: "jdk1234*4" 
+        '400':
+          description: Parámetros inválidos o faltantes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad request - Parámetros faltantes"
+                message: "Los parámetros 'id, API_KEY' son requeridos"
+                status: 400
+                timestamp: "2025-10-07T07:34:00Z" 
+        '401':   
+          description: Autenticación fallida - Id inválido o API key no autorizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                invalidCredentials:
+                  error: "Unauthorized"
+                  message: "Credenciales no válidas"
+                  statusCode: 401
+                  timestamp: "2025-10-07T07:34:00Z"
+                invalidApiKey:
+                  error: "Unauthorized"
+                  message: "API key inválida"
+                  statusCode: 401
+                  timestamp: "2025-10-07T07:34:00Z"    
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "Error interno del servidor"
+                statusCode: 500
+                timestamp: "2025-10-07T07:35:00Z"       
+                
+  /users/{username}:
+    get:
+      tags:
+        - Usuarios
+      summary: Obtiene los datos del usuario con el nombre solicitado
+      description: |
+        Consulta para verificar si ya existe un usuario con el mismo nombre de usuario.  
+        Se utiliza para verificar la existencia de un nombre de usuario duplicado durante el proceso de registro.
+        
+        **Nota**: Este endpoint está diseñado para comunicación entre microservicios  y requiere de una API key válida.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          description: El nombre de usuario que se desea consultar
+          schema:
+            type: string
+            example: "juanM12"
+            
+      responses:
+        '200':
+          description: Autenticación exitosa. Devuelve los datos del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileDTO'
+              example:
+                name: "jhon"
+                surname: "brown"
+                username: "jhon1342"
+                email: "jhonbrown@gmail.com"
+                password: "jdk1234*4" 
+        '400':
+          description: Parámetros inválidos o faltantes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad request - Parámetros faltantes"
+                message: "Los parámetros 'username, API_KEY' son requeridos"
+                status: 400
+                timestamp: "2025-10-06T19:13:00Z" 
+        '401':   
+          description: Autenticación fallida - Email inválido o API key no autorizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                invalidCredentials:
+                  error: "Unauthorized"
+                  message: "Credenciales no válidas"
+                  statusCode: 401
+                  timestamp: "2025-10-06T18:34:00Z"
+                invalidApiKey:
+                  error: "Unauthorized"
+                  message: "API key inválida"
+                  statusCode: 401
+                  timestamp: "2025-10-06T19:14:00Z"    
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "Error interno del servidor"
+                statusCode: 500
+                timestamp: "2025-10-06T18:41:00Z"     
+  
+  /users/{phone}:
+    get:
+      tags:
+        - Usuarios
+      summary: Obtiene los datos del usuario con el número de teléfono solicitado
+      description: |
+        Consulta para verificar si ya existe un usuario con el mismo número de teléfono.  
+        Se utiliza para verificar la existencia de un nombre de usuario duplicado durante el proceso de registro.
+        
+        **Nota**: Este endpoint está diseñado para comunicación entre microservicios  y requiere de una API key válida.
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: phone
+          in: path
+          required: true
+          description: El número de teléfono de usuario que se desea consultar
+          schema:
+            type: string
+            example: "+34 927304576"
+            
+      responses:
+        '200':
+          description: Autenticación exitosa. Devuelve los datos del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileDTO'
+              example:
+                name: "jhon"
+                surname: "brown"
+                username: "jhon1342"
+                email: "jhonbrown@gmail.com"
+                password: "jdk1234*4" 
+                phone: "+34 927304576"
+        '400':
+          description: Parámetros inválidos o faltantes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Bad request - Parámetros faltantes"
+                message: "Los parámetros 'phone, API_KEY' son requeridos"
+                status: 400
+                timestamp: "2025-10-06T19:13:00Z" 
+        '401':   
+          description: Autenticación fallida - Teléfono inválido o API key no autorizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                invalidCredentials:
+                  error: "Unauthorized"
+                  message: "Credenciales no válidas"
+                  statusCode: 401
+                  timestamp: "2025-10-06T18:34:00Z"
+                invalidApiKey:
+                  error: "Unauthorized"
+                  message: "API key inválida"
+                  statusCode: 401
+                  timestamp: "2025-10-06T19:14:00Z"    
+        '500':
+          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Internal Server Error"
+                message: "Error interno del servidor"
+                statusCode: 500
+                timestamp: "2025-10-06T18:41:00Z"                   
+                
+      
         
               
 components:
@@ -447,6 +834,11 @@ components:
       type: apiKey
       name: X_API_Key
       in: header
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      
   schemas:
     UpdateUserDTO:
       type: object
@@ -479,6 +871,11 @@ components:
           format: date
           description: El año de nacimiento debe de ser una fecha pasada
           example: "2004-06-11"
+        phone:
+          type: string
+          pattern: "(\\+34|0034|34)?[ -]*(6|7)[ -]*([0-9][ -]*){8}?$"
+          example: "+34 927304576" 
+          
           
     UserLoginDTO:
       type: object
@@ -887,5 +1284,3 @@ components:
         - CHILLWAVE
         - SYNTHWAVE
         - NEW_WAVE
-      
-      

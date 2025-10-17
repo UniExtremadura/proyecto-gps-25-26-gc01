@@ -7,10 +7,23 @@ servers:
   - url: http://localhost:8081/api
     description: Servidor de desarrollo
 
+tags:
+  - name: Albums
+    description: Operaciones con álbumes
+  - name: Songs  
+    description: Operaciones con canciones
+  - name: Products
+    description: Operaciones con productos
+  - name: Comments
+    description: Operaciones con comentarios
+  - name: Genres
+    description: Operaciones con géneros musicales
+
 paths:
-  # Endpoints adicionales de Álbumes
+  # ========== ALBUMS ==========
   /albums/{publicId}/exists:
     get:
+      tags: [Albums]
       summary: Verificar si un álbum existe por ID público
       operationId: checkAlbumExists
       security:
@@ -32,11 +45,11 @@ paths:
                 properties:
                   exists:
                     type: boolean
-        '400':
-          description: ID inválido
+                    example: true
 
   /albums/expired:
     get:
+      tags: [Albums]
       summary: Obtener álbumes eliminados expirados
       operationId: getExpiredDeletedAlbums
       security:
@@ -49,6 +62,7 @@ paths:
             type: string
             format: date-time
           description: Fecha límite para considerar expirado
+          example: "2025-10-01T00:00:00Z"
       responses:
         '200':
           description: Lista de álbumes expirados
@@ -58,11 +72,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Album'
-        '400':
-          description: Parámetro threshold inválido
 
   /artists/{artistId}/albums:
     get:
+      tags: [Albums]
       summary: Obtener todos los álbumes de un artista
       operationId: getAlbumsByArtist
       security:
@@ -73,6 +86,7 @@ paths:
           required: true
           schema:
             type: string
+            example: "artist123"
       responses:
         '200':
           description: Lista de álbumes del artista
@@ -82,126 +96,11 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Album'
-        '404':
-          description: Artista no encontrado
 
-  # Endpoints adicionales de Comentarios de Álbumes
-  /albums/{albumId}/comments:
-    get:
-      summary: Obtener comentarios de un álbum paginados
-      operationId: getAlbumComments
-      security:
-        - ApiKeyAuth: []
-      parameters:
-        - name: albumId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-        - name: page
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 0
-        - name: size
-          in: query
-          required: false
-          schema:
-            type: integer
-            default: 10
-      responses:
-        '200':
-          description: Comentarios del álbum
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  content:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/AlbumComment'
-                  totalElements:
-                    type: integer
-                  totalPages:
-                    type: integer
-                  size:
-                    type: integer
-                  number:
-                    type: integer
-
-    delete:
-      summary: Eliminar todos los comentarios de un álbum
-      operationId: deleteAllAlbumComments
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: albumId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: Todos los comentarios eliminados
-        '404':
-          description: Álbum no encontrado
-
-  # Endpoints de Géneros
-  /genres/{type}:
-    get:
-      summary: Obtener género por tipo
-      operationId: getGenreByType
-      security:
-        - ApiKeyAuth: []
-      parameters:
-        - name: type
-          in: path
-          required: true
-          schema:
-            $ref: '#/components/schemas/GenreType'
-      responses:
-        '200':
-          description: Género encontrado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Genre'
-        '404':
-          description: Género no encontrado
-
-  /genres/bulk:
-    get:
-      summary: Obtener múltiples géneros por tipos
-      operationId: getGenresByTypes
-      security:
-        - ApiKeyAuth: []
-      parameters:
-        - name: types
-          in: query
-          required: true
-          style: form
-          explode: false
-          schema:
-            type: array
-            items:
-              $ref: '#/components/schemas/GenreType'
-      responses:
-        '200':
-          description: Géneros encontrados
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Genre'
-
-  # Endpoints adicionales de Canciones
+  # ========== SONGS ==========
   /songs/{publicId}/exists:
     get:
+      tags: [Songs]
       summary: Verificar si una canción existe por ID público
       operationId: checkSongExists
       security:
@@ -223,9 +122,11 @@ paths:
                 properties:
                   exists:
                     type: boolean
+                    example: true
 
   /songs/{publicId}/force:
     delete:
+      tags: [Songs]
       summary: Eliminar canción físicamente por ID público
       operationId: forceDeleteSong
       security:
@@ -245,6 +146,7 @@ paths:
 
   /songs/bulk:
     get:
+      tags: [Songs]
       summary: Obtener múltiples canciones por IDs públicos
       operationId: getSongsByPublicIds
       security:
@@ -270,82 +172,113 @@ paths:
                 items:
                   $ref: '#/components/schemas/Song'
 
-  /songs/{publicId}/count:
+  # ========== PRODUCTS ==========
+  /products:
     get:
-      summary: Contar canciones con ID público específico
-      operationId: countSongsByPublicId
+      tags: [Products]
+      summary: Obtener todos los productos
+      operationId: getAllProducts
       security:
         - ApiKeyAuth: []
-      parameters:
-        - name: publicId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
       responses:
         '200':
-          description: Conteo exitoso
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  count:
-                    type: integer
-
-  /songs/expired:
-    get:
-      summary: Obtener canciones eliminadas expiradas
-      operationId: getExpiredDeletedSongs
-      security:
-        - ApiKeyAuth: []
-      parameters:
-        - name: threshold
-          in: query
-          required: true
-          schema:
-            type: string
-            format: date-time
-          description: Fecha límite para considerar expirado
-      responses:
-        '200':
-          description: Lista de canciones expiradas
+          description: Lista de productos
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Song'
+                  $ref: '#/components/schemas/Product'
 
-  /artists/{username}/songs/deleted:
+    post:
+      tags: [Products]
+      summary: Crear un nuevo producto
+      operationId: createProduct
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+  /products/{id}:
     get:
-      summary: Obtener canciones eliminadas de un artista
-      operationId: getDeletedSongsByArtist
+      tags: [Products]
+      summary: Obtener producto por ID
+      operationId: getProductById
       security:
         - ApiKeyAuth: []
       parameters:
-        - name: username
+        - name: id
           in: path
           required: true
           schema:
             type: string
       responses:
         '200':
-          description: Lista de canciones eliminadas del artista
+          description: Producto encontrado
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Song'
-        '404':
-          description: Artista no encontrado
+                $ref: '#/components/schemas/Product'
 
-  /albums/{albumId}/songs:
+    put:
+      tags: [Products]
+      summary: Actualizar producto
+      operationId: updateProduct
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdate'
+      responses:
+        '200':
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+
+    delete:
+      tags: [Products]
+      summary: Eliminar producto
+      operationId: deleteProduct
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Producto eliminado
+
+  # ========== COMMENTS ==========
+  /albums/{albumId}/comments:
     get:
-      summary: Obtener todas las canciones de un álbum
-      operationId: getSongsByAlbum
+      tags: [Comments]
+      summary: Obtener comentarios de un álbum paginados
+      operationId: getAlbumComments
       security:
         - ApiKeyAuth: []
       parameters:
@@ -355,21 +288,61 @@ paths:
           schema:
             type: string
             format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10
       responses:
         '200':
-          description: Lista de canciones del álbum
+          description: Comentarios del álbum
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Song'
-        '404':
-          description: Álbum no encontrado
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AlbumComment'
+                  totalElements:
+                    type: integer
+                    example: 50
+                  totalPages:
+                    type: integer
+                    example: 5
+                  size:
+                    type: integer
+                    example: 10
+                  number:
+                    type: integer
+                    example: 0
 
-  # Endpoints adicionales de Comentarios de Canciones
+    delete:
+      tags: [Comments]
+      summary: Eliminar todos los comentarios de un álbum
+      operationId: deleteAllAlbumComments
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: albumId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Todos los comentarios eliminados
+
   /songs/{songId}/comments:
     get:
+      tags: [Comments]
       summary: Obtener comentarios de una canción paginados
       operationId: getSongComments
       security:
@@ -383,13 +356,11 @@ paths:
             format: uuid
         - name: page
           in: query
-          required: false
           schema:
             type: integer
             default: 0
         - name: size
           in: query
-          required: false
           schema:
             type: integer
             default: 10
@@ -407,14 +378,19 @@ paths:
                       $ref: '#/components/schemas/SongComment'
                   totalElements:
                     type: integer
+                    example: 30
                   totalPages:
                     type: integer
+                    example: 3
                   size:
                     type: integer
+                    example: 10
                   number:
                     type: integer
+                    example: 0
 
     delete:
+      tags: [Comments]
       summary: Eliminar todos los comentarios de una canción
       operationId: deleteAllSongComments
       security:
@@ -429,8 +405,55 @@ paths:
       responses:
         '200':
           description: Todos los comentarios eliminados
-        '404':
-          description: Canción no encontrada
+
+  # ========== GENRES ==========
+  /genres/{type}:
+    get:
+      tags: [Genres]
+      summary: Obtener género por tipo
+      operationId: getGenreByType
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/GenreType'
+      responses:
+        '200':
+          description: Género encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Genre'
+
+  /genres/bulk:
+    get:
+      tags: [Genres]
+      summary: Obtener múltiples géneros por tipos
+      operationId: getGenresByTypes
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: types
+          in: query
+          required: true
+          style: form
+          explode: false
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/GenreType'
+      responses:
+        '200':
+          description: Géneros encontrados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Genre'
 
 components:
   securitySchemes:
@@ -442,7 +465,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      
+
   schemas:
     Album:
       type: object
@@ -450,30 +473,40 @@ components:
         id:
           type: string
           format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
         name:
           type: string
+          example: "Midnight Dreams"
         description:
           type: string
+          example: "Álbum de rock alternativo"
         price:
           type: number
           format: float
+          example: 9.99
         coverName:
           type: string
+          example: "cover.jpg"
         publishDate:
           type: string
           format: date-time
+          example: "2025-10-17T00:00:00Z"
         deleted:
           type: boolean
+          example: false
         deletedAt:
           type: string
           format: date-time
+          example: "2025-10-17T00:00:00Z"
         artist:
           type: object
           properties:
             id:
               type: string
+              example: "artist123"
             username:
               type: string
+              example: "cool_artist"
 
     Song:
       type: object
@@ -481,30 +514,42 @@ components:
         id:
           type: string
           format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
         name:
           type: string
+          example: "Summer Vibes"
         description:
           type: string
+          example: "Canción de verano"
         price:
           type: number
           format: float
+          example: 1.99
         duration:
           type: integer
+          example: 180
         audioName:
           type: string
+          example: "audio.mp3"
         previewStart:
           type: integer
+          example: 30
         previewDuration:
           type: integer
+          example: 30
         previewName:
           type: string
+          example: "preview.mp3"
         coverName:
           type: string
+          example: "cover.jpg"
         deleted:
           type: boolean
+          example: false
         deletedAt:
           type: string
           format: date-time
+          example: "2025-10-17T00:00:00Z"
         genres:
           type: array
           items:
@@ -512,19 +557,97 @@ components:
         album:
           $ref: '#/components/schemas/Album'
 
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "prod123"
+        name:
+          type: string
+          example: "Camiseta Oversized"
+        description:
+          type: string
+          example: "Camiseta de algodón 100%"
+        price:
+          type: number
+          format: float
+          example: 24.99
+        stock:
+          type: integer
+          example: 50
+        type:
+          type: string
+          example: "camiseta"
+        coverSrc:
+          type: string
+          example: "https://example.com/image.jpg"
+        artistPublicId:
+          type: string
+          example: "artist123"
+
+    ProductCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Nueva Camiseta"
+        description:
+          type: string
+          example: "Descripción del producto"
+        price:
+          type: number
+          format: float
+          example: 19.99
+        stock:
+          type: integer
+          example: 100
+        type:
+          type: string
+          example: "camiseta"
+        coverSrc:
+          type: string
+          example: "https://example.com/image.jpg"
+
+    ProductUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Camiseta Actualizada"
+        description:
+          type: string
+          example: "Nueva descripción"
+        price:
+          type: number
+          format: float
+          example: 29.99
+        stock:
+          type: integer
+          example: 75
+        type:
+          type: string
+          example: "camiseta"
+        coverSrc:
+          type: string
+          example: "https://example.com/new-image.jpg"
+
     Genre:
       type: object
       properties:
         id:
           type: integer
+          example: 1
         type:
           $ref: '#/components/schemas/GenreType'
         description:
           type: string
+          example: "Rock music genre"
 
     GenreType:
       type: string
       enum: [ROCK, POP, JAZZ, CLASSICAL, HIP_HOP, ELECTRONIC, COUNTRY, REGGAE, BLUES, METAL, FOLK, RNB, LATIN, OTHER]
+      example: "ROCK"
 
     AlbumComment:
       type: object
@@ -537,20 +660,26 @@ components:
               properties:
                 id:
                   type: string
+                  example: "user123"
                 username:
                   type: string
+                  example: "cool_user"
             album:
               $ref: '#/components/schemas/Album'
         description:
           type: string
+          example: "¡Excelente álbum!"
         rating:
           type: integer
+          example: 5
         createdAt:
           type: string
           format: date-time
+          example: "2025-10-17T10:30:00Z"
         updatedAt:
           type: string
           format: date-time
+          example: "2025-10-17T10:30:00Z"
 
     SongComment:
       type: object
@@ -563,17 +692,23 @@ components:
               properties:
                 id:
                   type: string
+                  example: "user123"
                 username:
                   type: string
+                  example: "cool_user"
             song:
               $ref: '#/components/schemas/Song'
         description:
           type: string
+          example: "Me encanta esta canción"
         rating:
           type: integer
+          example: 4
         createdAt:
           type: string
           format: date-time
+          example: "2025-10-17T10:30:00Z"
         updatedAt:
           type: string
           format: date-time
+          example: "2025-10-17T10:30:00Z"

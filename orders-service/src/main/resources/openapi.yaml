@@ -26,6 +26,7 @@ components:
   schemas:
     Buyer:
       type: object
+      description: Información del comprador.
       required:
         - name
         - username
@@ -41,6 +42,7 @@ components:
 
     Seller:
       type: object
+      description: Información del vendedor.
       required:
         - name
         - username
@@ -71,6 +73,7 @@ components:
 
     OrderItem:
       type: object
+      description: Información del un artículo dentro de la compra.
       required:
         - publicId
         - name
@@ -119,6 +122,7 @@ components:
 
     OrderResponse:
       type: object
+      description: Respuesta ofrecida al cliente con información de una sola compra.
       required:
         - publicId
         - madeBy
@@ -156,6 +160,7 @@ components:
 
     CreateOrderRequest:
       type: object
+      description: Petición para crear una compra.
       required:
         - items
       properties:
@@ -181,6 +186,7 @@ components:
 
     OrdersPage:
       type: object
+      description: Página ofrecida al cliente con información de las compras.
       properties:
         content:
           type: array
@@ -203,6 +209,54 @@ components:
           type: integer
           example: 7
           description: Número de páginas totales del tamaño indicado.
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          description: Código interno del error.
+          example: 400
+        message:
+          type: string
+          description: Mensaje descriptivo del error.
+          example: "El campo 'items' es obligatorio."
+        details:
+          type: array
+          description: Información adicional sobre el error.
+          items:
+            type: string
+          example: [ "El campo 'items[0].quantity' debe ser mayor que 0" ]
+
+  responses:
+    UnauthorizedError:
+      description: Usuario no autenticado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            unauthorized:
+              summary: JWT inválido o ausente
+              value:
+                code: 401
+                message: "No autorizado"
+
+    OrderNotFoundError:
+      description: Compra no encontrada.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            notFound:
+              summary: Compra no encontrado
+              value:
+                code: 404
+                message: "La compra 550e8400-e29b-41d4-a716-446655440000 no existe"
 
 security:
   - bearerAuth: []
@@ -286,6 +340,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Error en el body de la petición.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                errorQuantity:
+                  summary: Cantidad incorrecta.
+                  value:
+                    code: 400
+                    message: "Solo existen 2 unidades para el artículo 550e8400-e29b-41d4-a716-446655440000 y se han especificado 3."
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: Algunos de los items no se encontraron.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notFound:
+                  summary: Contenido no encontrado
+                  value:
+                    code: 404
+                    message: "El artículo 550e8400-e29b-41d4-a716-446655440000 no existe"
 
   /orders/{orderId}:
     get:
@@ -309,8 +389,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrderResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
-          description: Compra no encontrada.
+          $ref: '#/components/responses/OrderNotFoundError'
 
     patch:
       tags:
@@ -345,8 +427,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrderResponse'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
-          description: Compra no encontrada.
+          $ref: '#/components/responses/OrderNotFoundError'
 
     delete:
       tags:
@@ -358,14 +442,21 @@ paths:
       parameters:
         - in: path
           name: orderId
+          description: Identificador público de la compra a eliminar/cancelar.
           required: true
           schema:
             type: string
             format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
       responses:
         '204':
           description: Compra eliminada correctamente.
-        '403':
-          description: No autorizado.
+          content:
+            application/txt:
+              schema:
+                type: string
+                example: "Compra eliminada correctamente"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
         '404':
-          description: Compra no encontrada.
+          $ref: '#/components/responses/OrderNotFoundError'

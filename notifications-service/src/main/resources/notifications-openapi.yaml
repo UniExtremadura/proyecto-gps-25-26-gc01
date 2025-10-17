@@ -1,0 +1,247 @@
+openapi: "3.1.0"
+info:
+  title: Microservicio de Notificaciones
+  version: 1.0.0
+  description: |
+    Servicio encargado de la gestión centralizada de notificaciones del sistema.  
+    Su objetivo es garantizar que los usuarios reciban información relevante de manera segura, 
+    manteniendo la separación de responsabilidades y la integridad de los canales de comunicación.  
+    Todas las operaciones requieren autenticación mediante **Bearer JWT**, **API Key**, o un **rol de administrador**.
+
+servers:
+  - url: http://undersounds.es/api/v1/notifications/
+
+security:
+  - bearerAuth: []
+  - apiKeyAuth: []
+  - adminRole: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+    adminRole:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT con rol administrativo.
+
+  schemas:
+    CreateNotificationRequest:
+      type: object
+      required: [message, channel, userId]
+      properties:
+        message:
+          type: string
+          example: "Tu pedido ha sido enviado"
+          description: Contenido textual del mensaje de notificación.
+        channel:
+          type: string
+          enum: [EMAIL, SMS, PUSH]
+          example: EMAIL
+          description: Canal por el que se enviará la notificación.
+        userId:
+          type: string
+          format: uuid
+          example: "f5f3b9b4-7e87-4a4b-8b9e-6c4f71f1111a"
+          description: Identificador del usuario destinatario.
+        status:
+          type: string
+          enum: [PENDING, SENT, FAILED]
+          example: PENDING
+          description: Estado inicial de la notificación.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Datos adicionales opcionales asociados a la notificación.
+
+    NotificationResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "3a8b5a4b-8899-4cba-92d1-78d5b4c1a777"
+        message:
+          type: string
+          example: "Tu pedido ha sido enviado"
+        channel:
+          type: string
+          example: "EMAIL"
+        status:
+          type: string
+          example: "SENT"
+        userId:
+          type: string
+          format: uuid
+          example: "f5f3b9b4-7e87-4a4b-8b9e-6c4f71f1111a"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-17T13:45:00Z"
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Parámetros inválidos en la solicitud"
+        path:
+          type: string
+          example: "/notifications"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-10-17T13:45:00Z"
+
+tags:
+  - name: notification
+    description: Operaciones relacionadas con la gestión de notificaciones.
+
+paths:
+  /:
+    get:
+      tags: [notification]
+      summary: Listar todas las notificaciones
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de notificaciones existentes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponse'
+        '401':
+          description: No autorizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /{notificationId}:
+    get:
+      tags: [notification]
+      summary: Obtener una notificación por ID
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          description: Identificador de la notificación.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notificación encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: No se encontró la notificación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - notifications
+      summary: Actualizar una notificación existente
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identificador de la notificación.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotificationRequest'
+            example:
+              message: "Actualización del estado de tu pedido"
+              channel: "PUSH"
+              status: "SENT"
+              userId: "f5f3b9b4-7e87-4a4b-8b9e-6c4f71f1111a"
+      responses:
+        '200':
+          description: Notificación actualizada correctamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: No se encontró la notificación a actualizar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - notifications
+      summary: Eliminar una notificación
+      parameters:
+        - name: notificationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Identificador de la notificación.
+      responses:
+        '204':
+          description: Notificación eliminada correctamente.
+        '404':
+          description: No se encontró la notificación a eliminar.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /create:
+    post:
+      tags:
+        - notifications
+      summary: Crear una nueva notificación
+      description: Crea una nueva notificación para un usuario específico.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotificationRequest'
+            example:
+              message: "Tu suscripción ha sido activada"
+              channel: "EMAIL"
+              userId: "2f8a2e3d-1a99-4c7b-a771-36b5e0c9cdef"
+              status: "PENDING"
+      responses:
+        '201':
+          description: Notificación creada exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '400':
+          description: Datos inválidos en la solicitud.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

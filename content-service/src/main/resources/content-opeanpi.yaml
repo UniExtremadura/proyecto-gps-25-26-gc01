@@ -1,0 +1,1456 @@
+openapi: "3.1.0"
+info:
+  title: Contenido API
+  description: API para gestionar contenido (album, canción, producto) y sus comentarios en UnderSounds
+  version: 1.0.0
+  contact:
+    name: Soporte Técnico
+    email: soporte@undersounds.com
+    url: https://www.undersounds.com
+  license:
+    name: MIT License
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080/api/v1/content
+    description: Servidor de desarrollo
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Product:
+      type: object
+      required:
+        - id
+        - publicId
+        - name
+        - price
+        - stock
+        - type
+        - coverSrc
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Identificador interno del producto
+          example: 123
+        publicId:
+          type: string
+          format: uuid
+          description: Identificador público único del producto
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          description: Nombre del producto
+          example: "Camiseta edición limitada"
+        description:
+          type: string
+          description: Descripción del producto
+          example: "Una camiseta diseñada para los amantes del Rock"
+        price:
+          type: number
+          format: float
+          description: Precio en euros
+          example: 19.99
+        stock:
+          type: integer
+          description: Cantidad disponible
+          example: 50
+        type:
+          type: string
+          description: Tipo de producto (camiseta, taza, vinilo, cd, poster)
+          example: "camiseta"
+        coverSrc:
+          type: string
+          format: uri
+          description: URL de la portada o imagen principal del producto
+          example: "https://cdn.shopify.com/s/files/1/0000/1111/products/camiseta.png"
+        artistPublicId:
+          type: integer
+          format: int64
+          description: Identificador público del artista propietario del producto
+          example: 123
+
+    ProductCreateRequest:
+      type: object
+      required:
+        - name
+        - price
+        - stock
+        - type
+        - coverSrc
+      properties:
+        name:
+          type: string
+          example: "Vinilo edición especial"
+        description:
+          type: string
+          example: "Un vinilo creado para los amantes del Pop"
+        price:
+          type: number
+          format: float
+          example: 24.99
+        stock:
+          type: integer
+          example: 10
+        type:
+          type: string
+          enum: [camiseta, taza, vinilo, cd, poster]
+          example: "vinilo"
+        coverSrc:
+          type: string
+          format: uri
+          example: "https://cdn.shopify.com/s/files/1/0000/1111/products/vinilo.png"
+        artist:
+          type: integer
+          format: int64
+          description: Identificador del artista propietario del producto
+          example: 123
+
+    ProductResponse:
+      allOf:
+        - $ref: "#/components/schemas/Product"
+      properties:
+        artistName:
+          type: string
+          description: Nombre del artista
+          example: "The Undersounds"
+        artistPFP:
+          type: string
+          format: uri
+          description: Foto de perfil del artista
+          example: "https://cdn.undersounds.com/api/v1/images/artist/123.png"
+
+    ProductPage:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductResponse"
+        page:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+        totalElements:
+          type: integer
+          example: 125
+        totalPages:
+          type: integer
+          example: 7
+
+    # ------------------- ALBUMES ------------------------
+
+    ReceivedAlbumDTO:
+      type: object
+      description: Petición para crear un album. Inicialmente se crea vacío.
+      required:
+        - name
+        - description
+        - price
+        - publishDate
+      properties:
+        name:
+          type: string
+          description: Nombre del álbum.
+          example: "Graduation"
+        description:
+          type: string
+          description: Descripción del album.
+          example: "El mejor álbum de Kanye West"
+        price:
+          type: number
+          format: float
+          description: Precio que va a tener el álbum en euros.
+          example: "69.420"
+        publishDate:
+          type: string
+          format: date
+          description: Día de la publicación del álbum.
+          example: "11-09-2007"
+
+    SentAlbumDTO:
+      type: object
+      description: Álbum enviado al cliente.
+      required:
+        - id
+        - name
+        - description
+        - price
+        - coverSrc
+        - publishDate
+        - deleted
+        - deletedAt
+        - artist
+      readOnly: true
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador público del album.
+          example: "05d460db-5a0f-4d42-bf02-3de50cc236bd"
+        name:
+          type: string
+          description: Nombre del album.
+          example: "Graduation"
+        description:
+          type: string
+          description: Descripción del album.
+          example: "El mejor album de Kanye West"
+        price:
+          type: number
+          format: float
+          description: Precio en euros del album.
+          example: 69.420
+        coverSrc:
+          type: string
+          description: Enlace a la portada del álbum.
+          example: "https://cdn.undersounds.es/v1/content/albums/covers/05d460db-5a0f-4d42-bf02-3de50cc236bd.jpg"
+        publishDate:
+          type: string
+          format: date
+          description: Fecha de publicación del album.
+          example: "11-09-2007"
+        deleted:
+          type: boolean
+          description: Indica si ha sido borrado suavemente.
+          example: false
+        deletedAt:
+          type: string
+          format: date-time
+          description: Fecha en la que el album fue borrado suavemente.
+          example: "11-09-2007"
+        artist:
+          type: object
+          description: Información del artista que ha creado el album.
+          required:
+            - id
+            - username
+            - name
+            - pfpSrc
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: Identificador público del artista
+              example: "099d7c43-2592-4341-8f98-fe1189506ac1"
+            username:
+              type: string
+              description: Username del artista.
+              example: "kanye_west"
+            name:
+              type: string
+              description: Nombre del artista.
+              example: "Kanye West"
+            pfpSrc:
+              type: string
+              description: Enlace a la foto de perfil del artista.
+              example: "https://cdn.undersounds.es/v1/users/pfps/kanye_west.jpg"
+
+    # ------------------- CANCIONES ------------------------
+
+    ReceivedSongDTO:
+      type: object
+      description: Objeto usado para recibir los datos necesarios al crear una nueva canción en el sistema.
+      required:
+        - name
+        - price
+        - duration
+        - genres
+      properties:
+        name:
+          type: string
+          description: Nombre o título de la canción.
+          example: "Waves of Silence"
+        description:
+          type: string
+          description: Descripción o información adicional sobre la canción.
+          example: "Balada acústica con influencias de folk moderno."
+        price:
+          type: number
+          format: float
+          description: Precio de venta de la canción en euros.
+          example: 1.49
+        previewStart:
+          type: integer
+          description: Segundo de inicio del fragmento de vista previa.
+          example: 20
+        previewFinish:
+          type: integer
+          description: Segundo final del fragmento de vista previa.
+          example: 40
+        duration:
+          type: integer
+          description: Duración total de la canción en segundos.
+          example: 245
+        genres:
+          type: array
+          description: Lista de géneros musicales asociados a la canción.
+          items:
+            type: string
+            description: Género musical en formato texto o código identificador.
+            example: "FOLK"
+        albumId:
+          type: string
+          format: uuid
+          description: Identificador público del álbum al que pertenece la canción, si aplica.
+          example: "9d8f3f77-17b2-4f61-91b7-8bcb6547a0e1"
+
+    UpdateSongDTO:
+      type: object
+      description: Objeto usado para modificar los atributos de una canción existente.
+      required:
+        - publicId
+      properties:
+        publicId:
+          type: string
+          format: uuid
+          description: Identificador público de la canción a actualizar.
+          example: "3a9b1c48-5f23-4b76-9f7b-6a123f11c4de"
+        name:
+          type: string
+          description: Nuevo nombre o título de la canción.
+          example: "Reflections of Dawn"
+        description:
+          type: string
+          description: Nueva descripción o información adicional de la canción.
+          example: "Versión remasterizada con arreglos de guitarra adicionales."
+        price:
+          type: number
+          format: float
+          description: Nuevo precio de venta de la canción en euros.
+          example: 0.99
+        previewStart:
+          type: integer
+          description: Segundo de inicio del fragmento de vista previa.
+          example: 15
+        previewFinish:
+          type: integer
+          description: Segundo final del fragmento de vista previa.
+          example: 35
+        duration:
+          type: integer
+          description: Nueva duración total de la canción en segundos.
+          example: 220
+        genres:
+          type: array
+          description: Lista de géneros musicales actualizados asociados a la canción.
+          items:
+            type: string
+            description: Género musical en formato texto o código identificador.
+            example: "ELECTRONIC"
+
+    SentSongDTO:
+      type: object
+      description: Objeto que representa una canción enviada o recuperada desde el sistema.
+      required:
+        - id
+        - name
+        - price
+        - duration
+        - audioName
+        - coverName
+        - genres
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identificador único de la canción.
+          example: "b72a77b2-45d1-4a9c-b8f3-8d7cb836a2f3"
+        name:
+          type: string
+          description: Nombre o título de la canción.
+          example: "Echoes of Time"
+        description:
+          type: string
+          description: Descripción o información adicional sobre la canción.
+          example: "Tema instrumental con influencias electrónicas y ambientales."
+        price:
+          type: number
+          format: float
+          description: Precio de venta de la canción en euros.
+          example: 1.29
+        duration:
+          type: integer
+          description: Duración total de la canción en segundos.
+          example: 215
+        audioName:
+          type: string
+          description: Nombre del archivo de audio principal asociado a la canción.
+          example: "echoes_of_time.mp3"
+        previewStart:
+          type: integer
+          description: Segundo en el que inicia el fragmento de vista previa.
+          example: 30
+        previewDuration:
+          type: integer
+          description: Duración de la vista previa en segundos.
+          example: 20
+        previewName:
+          type: string
+          description: Nombre del archivo de audio correspondiente a la vista previa.
+          example: "echoes_of_time_preview.mp3"
+        coverName:
+          type: string
+          description: Nombre del archivo de imagen que actúa como portada de la canción.
+          example: "echoes_of_time_cover.jpg"
+        deleted:
+          type: boolean
+          description: Indica si la canción ha sido eliminada lógicamente del sistema.
+          example: false
+        deletedAt:
+          type: string
+          format: date-time
+          description: Fecha y hora en la que la canción fue marcada como eliminada, si aplica.
+          example: "2025-10-17T13:45:00Z"
+        genres:
+          type: array
+          description: Lista de géneros musicales asociados a la canción.
+          items:
+            $ref: "#/components/schemas/GenreDTO"
+        album:
+          $ref: "#/components/schemas/SentAlbumDTO"
+          description: Álbum al que pertenece la canción, si forma parte de uno.
+
+    # ------------------- GENEROS ------------------------
+
+    GenreDTO:
+      type: object
+      description: Objeto que representa un género musical dentro del sistema.
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: integer
+          description: Identificador único del género musical.
+          example: 3
+        type:
+          type: string
+          description: Tipo o categoría musical.
+          enum: [ROCK, POP, JAZZ, CLASSICAL, HIP_HOP, ELECTRONIC, COUNTRY, REGGAE, BLUES, METAL, FOLK, RNB, LATIN, OTHER]
+          example: "ROCK"
+
+    # ------------------- COMENTARIOS ------------------------
+
+    CommentDTO:
+      type: object
+      description: Objeto con información sobre un comentario publicado.
+      required:
+        - productId
+        - user
+        - description
+        - rating
+        - createdAt
+      properties:
+        productId:
+          type: string
+          format: uuid
+          description: Identificador público del producto con el que se relaciona este comentario.
+          example: "89037588-13d4-4991-9e87-c9f1214a7bd9"
+        user:
+          type: object
+          description: Información del usuario que ha publicado el comentario.
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: Identificador público del usuario
+              example: "aacd179c-fd84-4ca6-8928-973075e16027"
+            username:
+              type: string
+              description: Nombre único de usuario.
+              example: "user_04"
+            pfpSrc:
+              type: string
+              description: Enlace de la foto de perfil del usuario.
+              example: "https://cdn.undersounds.es/api/v1/users/pfps/user_04.jpg"
+        description:
+          type: string
+          description: Contenido del comentario.
+          example: "La mejor canción del mundo!"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Puntuación que se le ha otorgado al producto.
+          example: 4
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha en la que se publicó el comentario.
+          example: "09-11-2024"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha en la que se actualizó el comentario si fuese el caso.
+          example: "09-11-2025"
+
+    CreateCommentDTO:
+      type: object
+      description: Objeto usado para crear un nuevo comentario en una canción.
+      required:
+        - songPublicId
+        - description
+        - rating
+      properties:
+        songPublicId:
+          type: string
+          format: uuid
+          description: Identificador público del producto sobre la que se crea el comentario.
+          example: "a3f1b3a0-6e8d-4b7f-9f9f-93a6c9b84d21"
+        description:
+          type: string
+          description: Contenido textual del comentario.
+          example: "Increíble tema, la mezcla es perfecta."
+        rating:
+          type: integer
+          description: Valoración numérica del producto (de 1 a 5).
+          minimum: 1
+          maximum: 5
+          example: 4
+
+    UpdateCommentDTO:
+      type: object
+      description: Objeto con los atributos a cambiar del comentario
+      properties:
+        description:
+          type: string
+          description: Nuevo contenido del comentario.
+          example: "La mejor canción del mundo!"
+        rating:
+          type: integer
+          description: Nueva puntuación del producto.
+          minimum: 1
+          maximum: 5
+          example: 5
+
+tags:
+  - name: song
+    description: Canciones de la plataforma
+  - name: album
+    description: Albums de la plataforma
+  - name: product
+    description: Productos en venta de la plataforma
+  - name: comment
+    description: Comentarios del contenido en la plataforma
+
+paths:
+
+  /products:
+    get:
+      tags:
+        - product
+      summary: Listar productos con paginación y filtros
+      description: Devuelve una página de productos con soporte de filtros por nombre, artista y rango de precios.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+          description: Número de página (empezando en 0)
+          example: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            minimum: 1
+          description: Número de elementos por página
+          example: 20
+        - in: query
+          name: name
+          schema:
+            type: string
+          description: Filtro por nombre de producto (búsqueda parcial)
+          example: "camiseta"
+        - in: query
+          name: artist
+          schema:
+            type: string
+          description: Filtro por artista
+          example: "The Undersounds"
+        - in: query
+          name: minPrice
+          schema:
+            type: number
+            format: float
+          description: Precio mínimo
+          example: 10.0
+        - in: query
+          name: maxPrice
+          schema:
+            type: number
+            format: float
+          description: Precio máximo
+          example: 50.0
+      responses:
+        "200":
+          description: Página de productos filtrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductPage"
+
+    post:
+      tags:
+        - product
+      summary: Crear un nuevo producto
+      description: Crea un nuevo producto en la tienda y lo sincroniza con Shopify.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCreateRequest"
+      responses:
+        "201":
+          description: Producto creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+
+  /products/{id}:
+    get:
+      tags:
+        - product
+      summary: Obtener un producto por ID
+      description: Devuelve la información de un producto específico.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Producto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        "404":
+          description: Producto no encontrado
+
+    put:
+      tags:
+        - product
+      summary: Actualizar un producto
+      description: Actualiza un producto existente en la tienda y en Shopify.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductCreateRequest"
+      responses:
+        "200":
+          description: Producto actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductResponse"
+        "404":
+          description: Producto no encontrado
+
+    delete:
+      tags:
+        - product
+      summary: Eliminar un producto
+      description: Elimina un producto de la tienda y de Shopify.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          description: Producto eliminado correctamente
+        "404":
+          description: Producto no encontrado
+
+  /album:
+    post:
+      tags:
+        - album
+      summary: Subir un nuevo álbum
+      operationId: uploadAlbum
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                album:
+                  $ref: "#/components/schemas/ReceivedAlbumDTO"
+                cover:
+                  type: string
+                  format: binary
+                  description: Portada del álbum
+      responses:
+        '201':
+          description: Álbum subido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentAlbumDTO"
+        '400':
+          description: Solicitud incorrecta
+        '401':
+          description: No autorizado
+        '500':
+          description: Error interno del servidor
+
+    patch:
+      tags:
+        - album
+      summary: Actualizar un álbum existente
+      operationId: updateAlbum
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                album:
+                  $ref: "#/components/schemas/ReceivedAlbumDTO"
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Álbum actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentAlbumDTO"
+
+  /album/public/{publicId}:
+    get:
+      tags:
+        - album
+      summary: Obtener un álbum por su ID público
+      operationId: getAlbumByPublicId
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Álbum encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentAlbumDTO"
+        '404':
+          description: Álbum no encontrado
+
+  /album/public:
+    get:
+      tags:
+        - album
+      summary: Obtener álbumes filtrados
+      operationId: getAlbumsFiltered
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: artistUserName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Lista de álbumes filtrados
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SentAlbumDTO"
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer
+
+  /album/purchased:
+    get:
+      tags:
+        - album
+      summary: Obtener álbumes comprados por el usuario
+      operationId: getUserPurchasedAlbums
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de álbumes comprados
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SentAlbumDTO"
+
+  /album/restore/{publicId}:
+    patch:
+      tags:
+        - album
+      summary: Restaurar un álbum eliminado
+      operationId: restoreAlbum
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Álbum restaurado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentAlbumDTO"
+
+  /album/{publicId}/price:
+    patch:
+      tags:
+        - album
+      summary: Actualizar precio de un álbum
+      operationId: updateAlbumPrice
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: newPrice
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+      responses:
+        '200':
+          description: Precio actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentAlbumDTO"
+
+  /album/{publicId}:
+    delete:
+      tags:
+        - album
+      summary: Eliminar un álbum (borrado lógico)
+      operationId: deleteAlbum
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Álbum eliminado exitosamente
+          content:
+            application/txt:
+              schema:
+                type: string
+                example: "Álbum eliminado exitosamente"
+
+  # Endpoints de Canciones
+  /song:
+    post:
+      tags:
+        - song
+      summary: Subir una nueva canción
+      operationId: uploadSong
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                song:
+                  $ref: "#/components/schemas/ReceivedSongDTO"
+                audio:
+                  type: string
+                  format: binary
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Canción subida exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentSongDTO"
+
+    patch:
+      tags:
+        - song
+      summary: Actualizar una canción existente
+      operationId: updateSong
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                song:
+                  $ref: "#/components/schemas/UpdateSongDTO"
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Canción actualizada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentSongDTO"
+
+  /song/version:
+    post:
+      tags:
+        - song
+      summary: Crear una nueva versión de una canción
+      operationId: createSongVersion
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                song:
+                  $ref: "#/components/schemas/ReceivedSongDTO"
+                audioFile:
+                  type: string
+                  format: binary
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Nueva versión creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentSongDTO"
+
+  /song/public/{publicId}:
+    get:
+      tags:
+        - song
+      summary: Obtener una canción por su ID público
+      operationId: getSongByPublicId
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Canción encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentSongDTO"
+
+  /song/public:
+    get:
+      tags:
+        - song
+      summary: Obtener canciones filtradas
+      operationId: getSongsFiltered
+      parameters:
+        - name: genres
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: maxPrice
+          in: query
+          required: false
+          schema:
+            type: number
+            format: double
+        - name: albumId
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: artistUserName
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: Lista de canciones filtradas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SentSongDTO"
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer
+
+  /song/public/versions/{publicId}:
+    get:
+      tags:
+        - song
+      summary: Obtener versiones de una canción
+      operationId: getSongVersions
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Lista de versiones de la canción
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SentSongDTO"
+
+  /song/purchased:
+    get:
+      tags:
+        - song
+      summary: Obtener canciones compradas por el usuario
+      operationId: getUserPurchasedSongs
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de canciones compradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SentSongDTO"
+
+  /song/deleted:
+    get:
+      tags:
+        - song
+      summary: Obtener canciones eliminadas del artista
+      operationId: getDeletedSongs
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de canciones eliminadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SentSongDTO"
+
+  /song/{publicId}/audio:
+    get:
+      tags:
+        - song
+      summary: Obtener audio completo de una canción
+      operationId: getAudio
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Audio de la canción
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /song/public/{publicId}/preview:
+    get:
+      tags:
+        - song
+      summary: Obtener vista previa del audio de una canción
+      operationId: getPreview
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Vista previa del audio
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  /song/restore/{publicId}:
+    patch:
+      tags:
+        - song
+      summary: Restaurar una canción eliminada
+      operationId: restoreSong
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Canción restaurada exitosamente
+          content:
+            application/txt:
+              schema:
+                type: string
+                example: "Canción restaurada exitosamente"
+
+  /song/{publicId}:
+    delete:
+      tags:
+        - song
+      summary: Eliminar una canción (borrado lógico)
+      operationId: deleteSong
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: publicId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Canción eliminada exitosamente
+          content:
+            application/txt:
+              schema:
+                type: string
+                example: "Canción eliminada exitosamente"
+
+  # Endpoints de Comentarios
+  /comment/{productPublicId}:
+    post:
+      tags:
+        - comment
+      summary: Crear un comentario en un producto
+      operationId: createComment
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: productPublicId
+          in: path
+          description: Identificador público del producto con los comentarios.
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "9d5eae04-99fb-4dfb-a171-b1f623fa0748"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCommentDTO"
+      responses:
+        '201':
+          description: Comentario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentDTO"
+
+    get:
+      tags:
+        - comment
+      summary: Obtener comentario del usuario en un producto
+      operationId: getUserCommentInProduct
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: productPublicId
+          in: path
+          description: Identificador público del producto con los comentarios.
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "9d5eae04-99fb-4dfb-a171-b1f623fa0748"
+      responses:
+        '200':
+          description: Comentario del usuario
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentDTO"
+
+    put:
+      tags:
+        - comment
+      summary: Actualizar un comentario de álbum
+      operationId: updateAlbumComment
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: productPublicId
+          in: path
+          description: Identificador público del producto con los comentarios.
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "dd859bd3-b938-462f-b340-6d0a6ecd7887"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCommentDTO"
+      responses:
+        '200':
+          description: Comentario actualizado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentDTO"
+
+    delete:
+      tags:
+        - comment
+      summary: Eliminar un comentario. Requiere un JWT válido o rol de administrador.
+      operationId: deleteComment
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: productPublicId
+          in: path
+          description: Identificador público del producto con los comentarios.
+          required: true
+          schema:
+            type: string
+            format: uuid
+            example: "9d5eae04-99fb-4dfb-a171-b1f623fa0748"
+      responses:
+        '204':
+          description: Comentario eliminado exitosamente
+          content:
+            application/txt:
+              schema:
+                type: string
+                example: "Comentario eliminado exitosamente"
+
+  /comment/public/{productPublicId}:
+    get:
+      tags:
+        - comment
+      summary: Obtener comentarios de un producto filtrados. Este endpoint puede solicitarse sin JWT por clientes autorizados.
+      operationId: getByProductIdFiltered
+      parameters:
+        - name: productPublicId
+          in: path
+          required: true
+          description: Identificador público del producto
+          schema:
+            type: string
+            format: uuid
+            example: "02287450-3529-45c7-a7e0-e8d885366650"
+        - name: size
+          in: query
+          required: false
+          description: Tamaño de la página a retornar.
+          schema:
+            type: integer
+            default: 10
+        - name: page
+          in: query
+          required: false
+          description: Índice de la página a retornar.
+          schema:
+            type: integer
+            default: 0
+        - name: from
+          in: query
+          required: false
+          description: Fecha del primer comentario retornado.
+          schema:
+            type: string
+            format: date
+            example: "11-09-2025"
+        - name: to
+          in: query
+          required: false
+          description: Fecha del último comentario retornado.
+          schema:
+            type: string
+            format: date
+            example: "11-10-2025"
+
+      responses:
+        '200':
+          description: Lista de comentarios del producto
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CommentDTO"
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+                  size:
+                    type: integer
+                  number:
+                    type: integer

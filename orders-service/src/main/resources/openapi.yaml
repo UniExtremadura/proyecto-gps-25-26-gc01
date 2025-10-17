@@ -212,6 +212,7 @@ components:
 
     ErrorResponse:
       type: object
+      description: Objeto con información del error en la petición.
       required:
         - code
         - message

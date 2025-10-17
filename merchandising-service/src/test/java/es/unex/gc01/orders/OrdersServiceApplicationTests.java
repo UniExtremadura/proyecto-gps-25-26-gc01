@@ -1,10 +1,10 @@
-package es.unex.gc01.merchandisingservice;
+package es.unex.gc01.orders;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class MerchandisingServiceApplicationTests {
+class OrdersServiceApplicationTests {
 
 	@Test
 	void contextLoads() {

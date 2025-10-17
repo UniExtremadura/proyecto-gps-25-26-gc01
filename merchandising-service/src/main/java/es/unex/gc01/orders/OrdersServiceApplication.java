@@ -1,13 +1,13 @@
-package es.unex.gc01.merchandisingservice;
+package es.unex.gc01.orders;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class MerchandisingServiceApplication {
+public class OrdersServiceApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(MerchandisingServiceApplication.class, args);
+		SpringApplication.run(OrdersServiceApplication.class, args);
 	}
 
 }

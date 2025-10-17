@@ -1,4 +1,4 @@
-package es.unex.gc01.merchandisingservice.security;
+package es.unex.gc01.orders.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

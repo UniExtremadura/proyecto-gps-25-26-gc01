@@ -1,4 +1,4 @@
-package es.unex.gc01.merchandisingservice.entities;
+package es.unex.gc01.orders.entities;
 
 import jakarta.persistence.*;
 import lombok.Getter;
